@@ -22,14 +22,15 @@ from .base_detector import BaseDetector
 class DddDetector(BaseDetector):
   def __init__(self, opt):
     super(DddDetector, self).__init__(opt)
-    self.calib = np.array([[707.0493, 0, 604.0814, 45.75831],
-                           [0, 707.0493, 180.5066, -0.3454157],
-                           [0, 0, 1., 0.004981016]], dtype=np.float32)
+    # self.calib = np.array([[707.0493, 0, 604.0814, 45.75831],
+    #                        [0, 707.0493, 180.5066, -0.3454157],
+    #                        [0, 0, 1., 0.004981016]], dtype=np.float32)
 
+    self.calib = np.array([[725.0, 0.0, 620.5], [0.0, 725.0, 187.0], [0.0, 0.0, 1.0]]).astype(np.float32)
 
   def pre_process(self, image, scale, calib=None):
     height, width = image.shape[0:2]
-    
+
     inp_height, inp_width = self.opt.input_h, self.opt.input_w
     c = np.array([width / 2, height / 2], dtype=np.float32)
     if self.opt.keep_res:
@@ -48,12 +49,12 @@ class DddDetector(BaseDetector):
     calib = np.array(calib, dtype=np.float32) if calib is not None \
             else self.calib
     images = torch.from_numpy(images)
-    meta = {'c': c, 's': s, 
-            'out_height': inp_height // self.opt.down_ratio, 
+    meta = {'c': c, 's': s,
+            'out_height': inp_height // self.opt.down_ratio,
             'out_width': inp_width // self.opt.down_ratio,
             'calib': calib}
     return images, meta
-  
+
   def process(self, images, return_time=False):
     with torch.no_grad():
       torch.cuda.synchronize()
@@ -64,7 +65,7 @@ class DddDetector(BaseDetector):
       reg = output['reg'] if self.opt.reg_offset else None
       torch.cuda.synchronize()
       forward_time = time.time()
-      
+
       dets = ddd_decode(output['hm'], output['rot'], output['dep'],
                           output['dim'], wh=wh, reg=reg, K=self.opt.K)
     if return_time:
@@ -94,9 +95,9 @@ class DddDetector(BaseDetector):
     pred = debugger.gen_colormap(output['hm'][0].detach().cpu().numpy())
     debugger.add_blend_img(img, pred, 'pred_hm')
     debugger.add_ct_detection(
-      img, dets[0], show_box=self.opt.reg_bbox, 
+      img, dets[0], show_box=self.opt.reg_bbox,
       center_thresh=self.opt.vis_thresh, img_id='det_pred')
-  
+
   def show_results(self, debugger, image, results):
     debugger.add_3d_detection(
       image, results, self.this_calib,

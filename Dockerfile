@@ -171,8 +171,6 @@ ENV PYTHONPATH "${PYTHONPATH}:${WORKSPACE}/../packnet-sfm"
 # RUN git clone https://github.com/xingyizhou/CenterNet.git
 # ENV PYTHONPATH "${PYTHONPATH}:${WORKSPACE}/../packnet-sfm"
 
-# WORKDIR ${WORKSPACE}
-# RUN cd src/lib/models/networks/DCNv2 && ./make.sh
 RUN pip install progress
 
 
