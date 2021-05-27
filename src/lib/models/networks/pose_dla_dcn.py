@@ -1,17 +1,17 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
-import os
-import math
 import logging
-import numpy as np
+import math
+import os
 from os.path import join
 
+import fvcore.nn.weight_init as weight_init
+import numpy as np
 import torch
-from torch import nn
 import torch.nn.functional as F
 import torch.utils.model_zoo as model_zoo
+from torch import nn
+from torch.cuda import amp
 
 # from .DCNv2.dcn_v2 import DCN
 from detectron2.layers import ModulatedDeformConv
@@ -374,7 +374,14 @@ class DeformConv(nn.Module):
             dilation=1,
             deformable_groups=1,
         )
+        for layer in [self.deform_conv]:
+            if layer is not None:  # shortcut can be None
+                weight_init.c2_msra_fill(layer)
 
+        nn.init.constant_(self.conv2_offset.weight, 0)
+        nn.init.constant_(self.conv2_offset.bias, 0)
+
+    @amp.autocast(enabled=False)
     def forward(self, x):
         # x = self.conv(x)
         offset_mask = self.conv2_offset(x)
@@ -519,4 +526,3 @@ def get_pose_net(num_layers, heads, head_conv=256, down_ratio=4):
                  last_level=5,
                  head_conv=head_conv)
   return model
-
